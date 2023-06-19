@@ -3,7 +3,12 @@ package jm.task.core.jdbc.dao;
 import jm.task.core.jdbc.model.User;
 import jm.task.core.jdbc.util.Util;
 
-import java.sql.*;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,18 +16,19 @@ import java.util.List;
 public class UserDaoJDBCImpl implements UserDao {
 
     Connection connection = Util.getConnection();
+    String query;
 
     public UserDaoJDBCImpl() {
 
     }
 
     public void createUsersTable() {
-        String sql = "CREATE TABLE if not exists UsersTable (id BIGINT NOT NULL AUTO_INCREMENT, " +
+        query = "CREATE TABLE if not exists UsersTable (id BIGINT NOT NULL AUTO_INCREMENT, " +
                                                             "name VARCHAR(50), " +
                                                             "lastName VARCHAR(50), " +
                                                             "age TINYINT, " +
                                                             "PRIMARY KEY (id));";
-        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+        try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -30,8 +36,8 @@ public class UserDaoJDBCImpl implements UserDao {
     }
 
     public void dropUsersTable() {
-        String sql = "DROP TABLE if exists UsersTable;";
-        try ( PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+        query = "DROP TABLE if exists UsersTable;";
+        try ( PreparedStatement preparedStatement = connection.prepareStatement(query)) {
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -39,34 +45,51 @@ public class UserDaoJDBCImpl implements UserDao {
     }
 
     public void saveUser(String name, String lastName, byte age) {
-        String sql = "INSERT INTO UsersTable (name, lastName, age) values (?, ?, ?);";
-        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+        query = "INSERT INTO UsersTable (name, lastName, age) values (?, ?, ?);";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
             preparedStatement.setString(1, name);
             preparedStatement.setString(2, lastName);
             preparedStatement.setByte(3, age);
             preparedStatement.executeUpdate();
+            connection.commit();
         } catch (SQLException e) {
             e.printStackTrace();
+            if (connection != null) {
+                try {
+                    System.out.println("INSERT Transaction is being rolled back");
+                    connection.rollback();
+                } catch (SQLException connExc) {
+                    connExc.printStackTrace();
+                }
+            }
         }
-
     }
 
     public void removeUserById(long id) {
-        String sql = "DELETE FROM UsersTable WHERE id=?";
-        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+        query = "DELETE FROM UsersTable WHERE id=?";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
             preparedStatement.setLong(1, id);
             preparedStatement.executeUpdate();
+            connection.commit();
         } catch (SQLException e) {
             e.printStackTrace();
+            if (connection != null) {
+                try {
+                    System.out.println("DELETE Transaction is being rolled back");
+                    connection.rollback();
+                } catch (SQLException connExc) {
+                    connExc.printStackTrace();
+                }
+            }
         }
     }
 
     public List<User> getAllUsers() {
         List<User> userList = new ArrayList<>();
-        String sql = "SELECT id, name, lastName, age from UsersTable";
+        query = "SELECT id, name, lastName, age from UsersTable";
 
         try (Statement statement = connection.createStatement()) {
-            ResultSet resultSet = statement.executeQuery(sql);
+            ResultSet resultSet = statement.executeQuery(query);
 
             while (resultSet.next()) {
                 User user = new User();
@@ -76,17 +99,25 @@ public class UserDaoJDBCImpl implements UserDao {
                 user.setAge(resultSet.getByte("age"));
                 userList.add(user);
             }
-
             System.out.println(userList);
+            connection.commit();
         } catch (SQLException e) {
             e.printStackTrace();
+            if (connection != null) {
+                try {
+                    System.out.println("SELECT ALL Transaction is being rolled back");
+                    connection.rollback();
+                } catch (SQLException connExc) {
+                    connExc.printStackTrace();
+                }
+            }
         }
         return userList;
     }
 
     public void cleanUsersTable() {
-        String sql = "TRUNCATE UsersTable;";
-        try  (PreparedStatement preparedStatement = connection.prepareStatement(sql)){
+        query = "TRUNCATE UsersTable;";
+        try  (PreparedStatement preparedStatement = connection.prepareStatement(query)){
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
