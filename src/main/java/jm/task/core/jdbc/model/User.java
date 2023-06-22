@@ -33,7 +33,7 @@ public class User {
         this.age = age;
     }
 
-    public LonggetId() {
+    public Long getId() {
         return id;
     }
 
