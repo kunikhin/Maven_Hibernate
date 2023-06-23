@@ -17,30 +17,22 @@ public class UserDaoHibernateImpl implements UserDao {
 
     @Override
     public void createUsersTable() {
-        Transaction transaction = null;
         try (Session session = Util.getSessionFactory().openSession()) {
-            transaction = session.beginTransaction();
+            Transaction transaction = session.beginTransaction();
             session.createSQLQuery("CREATE TABLE if not exists UsersTable (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, name VARCHAR(50), lastName VARCHAR(50), age TINYINT);").addEntity(User.class).executeUpdate();
             transaction.commit();
         } catch (HibernateException e) {
-            if (transaction != null) {
-                transaction.rollback();
-            }
             e.printStackTrace();
         }
     }
 
     @Override
     public void dropUsersTable() {
-        Transaction transaction = null;
         try (Session session = Util.getSessionFactory().openSession()) {
-            transaction = session.beginTransaction();
+            Transaction transaction = session.beginTransaction();
             session.createSQLQuery("DROP TABLE if exists UsersTable;").executeUpdate();
             transaction.commit();
         } catch (HibernateException e) {
-            if (transaction != null) {
-                transaction.rollback();
-            }
             e.printStackTrace();
         }
     }
